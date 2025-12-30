@@ -52,7 +52,7 @@
             width: 100%;
         }
         
-        /* تحسينات الهيدر للأجهزة المحمولة */
+        /* تحسينات الهيدر */
         header {
             background: linear-gradient(to left, var(--primary-color), var(--secondary-color));
             color: white;
@@ -167,7 +167,7 @@
             margin-bottom: 30px;
         }
         
-        /* لوحة الفلاتر - متجاوبة */
+        /* لوحة الفلاتر */
         .filters-panel {
             background-color: white;
             border-radius: var(--border-radius);
@@ -321,7 +321,7 @@
             overflow: hidden;
         }
         
-        /* بطاقات المؤشرات - متجاوبة */
+        /* بطاقات المؤشرات */
         .kpi-cards {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -367,7 +367,7 @@
             font-size: clamp(0.8rem, 2vw, 0.9rem);
         }
         
-        /* المخططات - متجاوبة */
+        /* المخططات */
         .charts-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -399,7 +399,7 @@
             min-height: 250px;
         }
         
-        /* الجدول - متجاوب */
+        /* الجدول */
         .data-table-container {
             background-color: white;
             border-radius: var(--border-radius);
@@ -711,7 +711,8 @@
                 position: fixed;
                 top: 0;
                 right: -100%;
-                width: 100%;
+                width: 90%;
+                max-width: 400px;
                 height: 100vh;
                 z-index: 10000;
                 border-radius: 0;
@@ -719,6 +720,7 @@
                 transition: right 0.3s ease;
                 overflow-y: auto;
                 max-height: 100vh;
+                box-shadow: 0 0 20px rgba(0,0,0,0.2);
             }
             
             .filters-panel.active {
@@ -834,6 +836,7 @@
             
             .filters-panel {
                 padding: 15px;
+                width: 85%;
             }
             
             .chart-container {
@@ -893,35 +896,6 @@
                 gap: 25px;
             }
         }
-        
-        /* منع التكبير في حقول الإدخال على iOS */
-        input[type="date"],
-        input[type="number"] {
-            font-size: 16px; /* يمنع التكبير التلقائي في iOS */
-        }
-        
-        /* تحسين عرض التواريخ في الجدول */
-        td:nth-child(2) {
-            min-width: 100px;
-        }
-        
-        /* تحسين عرض المبالغ في الجدول */
-        td:nth-child(4) {
-            min-width: 90px;
-        }
-        
-        /* تحسين للعرض في الوضع الأفقي على الهواتف */
-        @media (max-height: 500px) and (orientation: landscape) {
-            .filters-panel {
-                top: 0;
-                height: 100vh;
-                overflow-y: auto;
-            }
-            
-            .kpi-cards {
-                grid-template-columns: repeat(4, 1fr);
-            }
-        }
     </style>
 </head>
 <body>
@@ -935,7 +909,6 @@
             <div class="header-content">
                 <h1><i class="fas fa-tractor"></i> لوحة تحكم مصروفات المزرعة والإبل</h1>
                 <p class="subtitle">تتبع وتحليل شامل لمصروفات المزرعة والإبل (2023-2025)</p>
-                                <button class="btn btn-outline" id="resetDateFilter">جلب البيانات</button>
             </div>
         </header>
         
@@ -977,7 +950,7 @@
                         </div>
                         <div class="date-filter-buttons">
                             <button class="btn btn-secondary" id="applyDateFilter">تطبيق التاريخ</button>
-                            <button class="btn btn-outline" id="resetDateFilter">إعادة تعيين</button>
+                            <button class="btn btn-outline" id="resetDateFilter">إعادة تعيين التاريخ</button>
                         </div>
                     </div>
                 </div>
@@ -1023,7 +996,7 @@
                         </div>
                         <div class="date-filter-buttons">
                             <button class="btn btn-secondary" id="applyAmountFilter">تطبيق المبلغ</button>
-                            <button class="btn btn-outline" id="resetAmountFilter">إعادة تعيين</button>
+                            <button class="btn btn-outline" id="resetAmountFilter">إعادة تعيين المبلغ</button>
                         </div>
                     </div>
                 </div>
@@ -1038,6 +1011,14 @@
                         <button class="btn btn-primary" id="applyAllFilters">تطبيق جميع الفلاتر</button>
                         <button class="btn btn-outline" id="resetAllFilters">إعادة تعيين الكل</button>
                     </div>
+                </div>
+                
+                <!-- زر جديد: جلب جميع البيانات -->
+                <div class="filter-group">
+                    <h4>جلب البيانات</h4>
+                    <button class="btn btn-primary" id="loadAllData" style="margin-top: 10px;">
+                        <i class="fas fa-sync-alt"></i> جلب جميع البيانات
+                    </button>
                 </div>
             </div>
             
@@ -1194,6 +1175,7 @@
         const showWithDatesBtn = document.getElementById('showWithDates');
         const applyAllFiltersBtn = document.getElementById('applyAllFilters');
         const resetAllFiltersBtn = document.getElementById('resetAllFilters');
+        const loadAllDataBtn = document.getElementById('loadAllData');
         const expenseTableBody = document.getElementById('expenseTableBody');
         const totalExpensesEl = document.getElementById('totalExpenses');
         const avgExpenseEl = document.getElementById('avgExpense');
@@ -1203,34 +1185,51 @@
         const expensesPeriodEl = document.getElementById('expensesPeriod');
         const loadingOverlay = document.getElementById('loadingOverlay');
 
-        // تحسينات للجوال: إغلاق لوحة الفلاتر عند النقر خارجها
-        document.addEventListener('click', (event) => {
-            if (window.innerWidth <= 992 && 
-                filtersPanel.classList.contains('active') && 
-                !filtersPanel.contains(event.target) && 
-                event.target !== mobileMenuBtn) {
+        // حل مشكلة الفلاتر على الموبايل
+        document.addEventListener('DOMContentLoaded', function() {
+            // إصلاح مشكلة النقر على الموبايل
+            setupMobileFixes();
+            loadExpensesData();
+        });
+
+        function setupMobileFixes() {
+            // حل مشكلة الفلاتر على الموبايل
+            mobileMenuBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                filtersPanel.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            });
+
+            closeFilters.addEventListener('click', function(e) {
+                e.stopPropagation();
                 filtersPanel.classList.remove('active');
-            }
-        });
+                document.body.style.overflow = '';
+            });
 
-        // منع إعادة تحميل الصفحة عند الضغط على Enter في حقول الإدخال
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter' && (event.target.type === 'date' || event.target.type === 'number')) {
-                event.preventDefault();
-                updateDashboard();
-            }
-        });
+            // منع إغلاق الفلاتر عند النقر داخلها
+            filtersPanel.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
 
-        // تحسينات اللمس: إضافة تأخير للاستجابة
-        let lastTap = 0;
-        document.addEventListener('touchend', (event) => {
-            const currentTime = new Date().getTime();
-            const tapLength = currentTime - lastTap;
-            if (tapLength < 500 && tapLength > 0) {
-                event.preventDefault();
-            }
-            lastTap = currentTime;
-        }, false);
+            // إغلاق الفلاتر عند النقر خارجها على الموبايل
+            document.addEventListener('click', function(e) {
+                if (window.innerWidth <= 992 && 
+                    filtersPanel.classList.contains('active') && 
+                    !filtersPanel.contains(e.target) && 
+                    e.target !== mobileMenuBtn) {
+                    filtersPanel.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            });
+
+            // إغلاق الفلاتر عند الضغط على زر الهروب
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && filtersPanel.classList.contains('active')) {
+                    filtersPanel.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            });
+        }
 
         // دالة لتحميل البيانات من الـ URL
         async function loadExpensesData() {
@@ -1400,15 +1399,9 @@
 
         // تهيئة لوحة التحكم
         function initializeDashboard() {
-            // تعيين تاريخ اليوم كحد أقصى لفلاتر التاريخ
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('endDate').max = today;
-            
-            // تعيين التواريخ الافتراضية
-            const startDate = new Date();
-            startDate.setMonth(startDate.getMonth() - 36);
-            document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
-            document.getElementById('endDate').value = today;
+            // لا نعيين تواريخ افتراضية - نتركها فارغة لجلب كل البيانات
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
             
             // تهيئة المخططات
             initializeCharts();
@@ -1457,72 +1450,51 @@
                 });
             });
 
-            // القائمة المتنقلة
-            mobileMenuBtn.addEventListener('click', function() {
-                filtersPanel.classList.add('active');
-                document.body.style.overflow = 'hidden';
+            // أزرار الفلاتر
+            applyDateFilterBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                applyDateFilter();
             });
 
-            closeFilters.addEventListener('click', function() {
-                filtersPanel.classList.remove('active');
-                document.body.style.overflow = '';
+            resetDateFilterBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                resetDateFilter();
             });
 
-            // إغلاق لوحة الفلاتر بالضغط على زر الهروب
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && filtersPanel.classList.contains('active')) {
-                    filtersPanel.classList.remove('active');
-                    document.body.style.overflow = '';
-                }
+            applyAmountFilterBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                applyAmountFilter();
             });
 
-            // أزرار الفلاتر مع تحسينات اللمس
-            const filterButtons = [
-                applyDateFilterBtn, resetDateFilterBtn,
-                applyAmountFilterBtn, resetAmountFilterBtn,
-                showWithoutDatesBtn, showWithDatesBtn,
-                applyAllFiltersBtn, resetAllFiltersBtn
-            ];
-            
-            filterButtons.forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const action = this.id;
-                    
-                    // تطبيق التأثير المرئي
-                    this.style.transform = 'scale(0.95)';
-                    setTimeout(() => {
-                        this.style.transform = '';
-                    }, 150);
-                    
-                    // تنفيذ الإجراء المناسب
-                    switch(action) {
-                        case 'applyDateFilter':
-                            applyDateFilter();
-                            break;
-                        case 'resetDateFilter':
-                            resetDateFilter();
-                            break;
-                        case 'applyAmountFilter':
-                            applyAmountFilter();
-                            break;
-                        case 'resetAmountFilter':
-                            resetAmountFilter();
-                            break;
-                        case 'showWithoutDates':
-                            showWithoutDates();
-                            break;
-                        case 'showWithDates':
-                            showWithDates();
-                            break;
-                        case 'applyAllFilters':
-                            applyAllFilters();
-                            break;
-                        case 'resetAllFilters':
-                            resetAllFilters();
-                            break;
-                    }
-                });
+            resetAmountFilterBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                resetAmountFilter();
+            });
+
+            showWithoutDatesBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                showWithoutDates();
+            });
+
+            showWithDatesBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                showWithDates();
+            });
+
+            applyAllFiltersBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                applyAllFilters();
+            });
+
+            resetAllFiltersBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                resetAllFilters();
+            });
+
+            // زر جلب جميع البيانات (بدون تحديد تاريخ)
+            loadAllDataBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                loadAllData();
             });
             
             // إعادة حساب البيانات عند تغيير أي فلتر
@@ -1544,6 +1516,39 @@
                     if (comparisonChart) comparisonChart.resize();
                 }, 300);
             });
+        }
+
+        // دالة جديدة: جلب جميع البيانات بدون تحديد تاريخ
+        function loadAllData() {
+            // إعادة تعيين جميع الفلاتر
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('minAmount').value = '';
+            document.getElementById('maxAmount').value = '';
+            
+            // تفعيل جميع الفئات
+            document.querySelectorAll('.filter-option input').forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            
+            // إعادة تعيين الفترة إذا كانت قابلة للتطبيق
+            if (currentYear === '2025') {
+                currentPeriod = 'all';
+                periodTabs.forEach(tab => tab.classList.remove('active'));
+                document.querySelector('.period-tab[data-period="all"]').classList.add('active');
+            }
+            
+            // تحديث لوحة التحكم
+            updateDashboard();
+            
+            // إغلاق لوحة الفلاتر على الموبايل
+            if (window.innerWidth <= 992) {
+                filtersPanel.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+            
+            // إظهار رسالة تأكيد
+            showMessage('تم جلب جميع البيانات بنجاح', 'success');
         }
 
         function setActiveYear(year) {
@@ -1608,39 +1613,25 @@
         }
 
         function updateDashboard() {
-            // إظهار مؤشر التحميل للعمليات الثقيلة
-            const loadingIndicator = document.createElement('div');
-            loadingIndicator.innerHTML = '<div class="spinner" style="width: 30px; height: 30px;"></div>';
-            loadingIndicator.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);';
+            // الحصول على بيانات السنة الحالية
+            let data = [...expensesData[currentYear]];
             
-            // فقط إظهار المؤشر للعمليات التي تستغرق وقتاً
-            setTimeout(() => {
-                // الحصول على بيانات السنة الحالية
-                let data = [...expensesData[currentYear]];
-                
-                // تطبيق فلترة الفترة لعام 2025
-                if (currentYear === '2025' && currentPeriod !== 'all') {
-                    data = filterByPeriod(data, currentPeriod);
-                }
-                
-                // تطبيق الفلاتر الأخرى
-                filteredData = applyFilters(data);
-                
-                // تحديث المؤشرات الرئيسية
-                updateKPIs(filteredData);
-                
-                // تحديث الجدول
-                updateTable(filteredData);
-                
-                // تحديث المخططات
-                updateCharts(filteredData);
-                
-                // إغلاق لوحة الفلاتر على الأجهزة المحمولة
-                if (window.innerWidth <= 992) {
-                    filtersPanel.classList.remove('active');
-                    document.body.style.overflow = '';
-                }
-            }, 50);
+            // تطبيق فلترة الفترة لعام 2025
+            if (currentYear === '2025' && currentPeriod !== 'all') {
+                data = filterByPeriod(data, currentPeriod);
+            }
+            
+            // تطبيق الفلاتر الأخرى
+            filteredData = applyFilters(data);
+            
+            // تحديث المؤشرات الرئيسية
+            updateKPIs(filteredData);
+            
+            // تحديث الجدول
+            updateTable(filteredData);
+            
+            // تحديث المخططات
+            updateCharts(filteredData);
         }
 
         function filterByPeriod(data, period) {
@@ -1664,7 +1655,7 @@
         function applyFilters(data) {
             let filtered = [...data];
             
-            // فلترة التاريخ
+            // فلترة التاريخ - فقط إذا كانت هناك تواريخ محددة
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
             
@@ -1992,22 +1983,26 @@
         // وظائف الفلاتر
         function applyDateFilter() {
             updateDashboard();
+            showMessage('تم تطبيق فلترة التاريخ', 'success');
         }
 
         function resetDateFilter() {
             document.getElementById('startDate').value = '';
             document.getElementById('endDate').value = '';
             updateDashboard();
+            showMessage('تم إعادة تعيين فلترة التاريخ', 'info');
         }
 
         function applyAmountFilter() {
             updateDashboard();
+            showMessage('تم تطبيق فلترة المبلغ', 'success');
         }
 
         function resetAmountFilter() {
             document.getElementById('minAmount').value = '';
             document.getElementById('maxAmount').value = '';
             updateDashboard();
+            showMessage('تم إعادة تعيين فلترة المبلغ', 'info');
         }
 
         function showWithoutDates() {
@@ -2016,6 +2011,7 @@
             updateKPIs(filteredData);
             updateTable(filteredData);
             updateCharts(filteredData);
+            showMessage('تم عرض البيانات بدون تواريخ', 'success');
         }
 
         function showWithDates() {
@@ -2024,10 +2020,12 @@
             updateKPIs(filteredData);
             updateTable(filteredData);
             updateCharts(filteredData);
+            showMessage('تم عرض البيانات مع التواريخ فقط', 'success');
         }
 
         function applyAllFilters() {
             updateDashboard();
+            showMessage('تم تطبيق جميع الفلاتر', 'success');
         }
 
         function resetAllFilters() {
@@ -2052,6 +2050,53 @@
             }
             
             updateDashboard();
+            showMessage('تم إعادة تعيين جميع الفلاتر', 'info');
+        }
+
+        // دالة لعرض الرسائل
+        function showMessage(message, type = 'info') {
+            // إزالة أي رسالة سابقة
+            const existingMessage = document.querySelector('.custom-message');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+            
+            // إنشاء عنصر الرسالة
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `custom-message custom-message-${type}`;
+            messageDiv.innerHTML = `
+                <div style="
+                    position: fixed;
+                    top: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: ${type === 'success' ? '#2c5f2d' : type === 'error' ? '#e74c3c' : '#3498db'};
+                    color: white;
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    z-index: 9999;
+                    font-weight: 600;
+                    animation: slideDown 0.3s ease;
+                    max-width: 90%;
+                    text-align: center;
+                ">
+                    ${message}
+                </div>
+            `;
+            
+            document.body.appendChild(messageDiv);
+            
+            // إزالة الرسالة بعد 3 ثواني
+            setTimeout(() => {
+                messageDiv.style.opacity = '0';
+                messageDiv.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => {
+                    if (messageDiv.parentNode) {
+                        messageDiv.remove();
+                    }
+                }, 300);
+            }, 3000);
         }
 
         // وظائف مساعدة
@@ -2086,29 +2131,6 @@
             } catch (e) {
                 return dateString;
             }
-        }
-
-        // تحميل البيانات عند تحميل الصفحة
-        document.addEventListener('DOMContentLoaded', function() {
-            // إضافة فئة التحميل للجسم
-            document.body.classList.add('loading');
-            
-            // تأخير بسيط لضمان تحميل الخطوط
-            setTimeout(() => {
-                loadExpensesData();
-            }, 100);
-            
-            // إضافة تأثيرات للتحميل
-            document.body.style.opacity = '0';
-            setTimeout(() => {
-                document.body.style.transition = 'opacity 0.3s ease';
-                document.body.style.opacity = '1';
-            }, 500);
-        });
-        
-        // تحسينات لأجهزة iOS
-        if (navigator.userAgent.match(/iPhone|iPad|iPod/i)) {
-            document.addEventListener('touchstart', function() {}, {passive: true});
         }
     </script>
 </body>
